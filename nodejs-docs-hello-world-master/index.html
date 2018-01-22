@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pulse Map</title>
+
+    <meta name="viewport" content="initial-scale=0.5">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        position: absolute; 
+        top: 180px;
+        left:0px;
+        right:0px;
+        margin: auto;
+        width: 1000px;
+        height: 70%;
+      }
+      #panel {
+      position: absolute; 
+      left: 500px;
+      top: 190px;
+      z-index: 2;
+      }
+      #elapsed {
+      position: absolute; 
+      left: 30px;
+      top: 570px;
+      z-index: 2;
+      color:red;
+      font-size:16pt;
+      font-weight: bold;
+      }
+      #gpulse {
+      position: absolute; 
+      left: 30px;
+      top: 490px;
+      z-index: 2;
+      color:red;
+      font-size:16pt;
+      font-weight: bold;
+      }
+      #fan {
+      position: absolute; 
+      left: 30px;
+      top: 600px;
+      z-index: 2;
+      color:red;
+      font-size:12pt;
+      }
+      #gpulseValue {
+      position: absolute; 
+      left: 30px;
+      top: 520px;
+      z-index: 2;
+      color:red;
+      font-size:18pt;
+      font-weight: bold;
+      }
+      #plsid{
+      position: absolute; 
+      left: 35px;
+      top: 300px;
+      z-index: 2;
+      height:50px;
+      width: 130px;
+      }
+      #myPopup {
+    visibility: hidden;
+    position: absolute;
+    z-index: 1;
+    height: 100px;
+    width: 300px;
+    margin: 84px 0 0 -150px;
+    top: 50%;
+    left: 50%;
+}
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <p style="text-align:center;">
+      <img src="../WebsiteBackground3.jpg" onclick="pop()"/>
+    </p>
+    <div id="myPopup"><img id="popImg" src="../google_play.png" onClick="unpop()" style="height:84px; width:300px;"/></div>
+    <div id="panel">
+        <button onclick="AddEvent()">Add Event</button>
+       <!-- --> <button onclick="toggleFanMap()">FanMap</button>
+        <button onclick="toggleEventMap()">EventMap</button>
+        <button onclick="togglePrizeMap()">PrizeMap</button>
+      </div>
+    <div id="map"></div>
+
+    <span id="elapsed">Newest fan:</span>;​
+    <span id="fan"></span>;​
+    <span id="gpulse">Global Pulse:</span>;​
+    <span id="gpulseValue"></span>;​
+    <!--<img id="plsid" src="../loading.png"/>-->
+
+
+    <script>
+      var map;
+      function initMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 2,
+          center: {lat: 20.865427, lng: 40.196123},
+          mapTypeId: 'terrain'
+        });
+        // Create a <script> tag and set the USGS URL as the source.
+            var script = document.createElement('script');
+
+        // This example uses a local copy of the GeoJSON stored at
+        // http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojsonp
+        script.src = '../family.js';
+        document.getElementsByTagName('head')[0].appendChild(script);
+
+      
+      }
+      var heatmapData = [];
+      var eventmapData = [];
+      var userData = [];
+      function user(city,imgURL,location,name){
+        this.city=city;
+        this.imgURL=imgURL;
+        this.location=location;
+        this.name=name;
+      }
+      function heat(location,pulse){
+        this.pulse=pulse;
+        this.location=location;
+      }
+     
+      var myLayers;
+      var heatmap;
+      var fanmap;
+      var eventmap;
+      var prizemap;
+      var selectedmap=1;
+      var limitdata=0;
+      var markerCluster0;
+      var markerCluster1;
+      var markerCluster2;
+
+      
+      var intervalID = setInterval(function(){
+
+
+          if(limitdata<20)
+          { 
+            if(limitdata%3==0)
+              event(0);
+            //if(limitdata%3==1)
+              //event(1);
+            if(limitdata%3==2)
+               event(2);
+            limitdata++;
+            
+          }
+          var center=map.getCenter();
+          var zoom=map.getZoom();
+          //alert(center+':'+zoom);
+          switch(selectedmap){
+            case 0:
+            //markerCluster0.repaint();
+            
+            //fanmap
+            break;
+            case 1:
+            eventmap.set('data',eventmap.get('data') ? null : eventmapData);
+            break;
+            case 2:
+            //prizemap
+            break;
+          }
+        }, 200);
+    
+      function eqfeed_callback(results) {
+
+        gpulseValue=document.getElementById('gpulseValue');
+       
+        myLayers=new google.maps.MVCObject();
+        myLayers.setValues({fans:null,prizes:null});
+
+
+      var heatmapLocations=[new heat(new google.maps.LatLng(37.782551, -122.445368),20),
+      new heat(new google.maps.LatLng(48.137154, 11.576124),100),
+      new heat(new google.maps.LatLng(48.78232, 9.17702),30),
+      new heat(new google.maps.LatLng(45.75372, 21.22571),30),
+      new heat(new google.maps.LatLng(50.87033, 20.62752),30),
+      new heat(new google.maps.LatLng(33.88894, 35.49442),30),
+      new heat(new google.maps.LatLng(55.78874, 49.12214),30),
+      new heat(new google.maps.LatLng(52.52437, 13.41053),10),
+      new heat(new google.maps.LatLng(50.77664, 6.08342),10),
+      new heat(new google.maps.LatLng(51.51494, 7.466),20),
+      new heat(new google.maps.LatLng(49.19522, 16.60796),10),
+      new heat(new google.maps.LatLng(45.46427, 9.18951),10),
+      new heat(new google.maps.LatLng(41.89193, 12.51133),10),
+      new heat(new google.maps.LatLng(41.11148, 16.8554),20),
+      new heat(new google.maps.LatLng(47.49801, 19.03991),10),
+      new heat(new google.maps.LatLng(50.66833, 25.64861),10),
+      new heat(new google.maps.LatLng(48.45, 29.98333),10),
+      new heat(new google.maps.LatLng(49.45466, 27.5238),20),
+      new heat(new google.maps.LatLng(43.23421,22.5234),10),
+      new heat(new google.maps.LatLng(45.66833, 15.64861),10),
+      new heat(new google.maps.LatLng(48.45, 34.98333),10),
+      new heat(new google.maps.LatLng(50.45466, 30.5238),20),
+      new heat(new google.maps.LatLng(53.23421,32.5234),10),
+
+      new heat(new google.maps.LatLng(39.9075, 116.39723),30)
+      ]
+        //alert(heatmapLocations.length);
+        for(var k=0;k < heatmapLocations.length;k++){
+          for(var j=0;j < heatmapLocations[k].pulse;j++){
+            heatmapData.push(heatmapLocations[k].location);
+            GP++;
+            gpulseValue.textContent=(10+GP/200.0)+'%';
+          }
+        }
+
+          heatmap = new google.maps.visualization.HeatmapLayer({
+          data: heatmapData,
+          dissipating: false,
+          radius:7,
+          gradient:[
+          'rgba(255, 0, 0, 0)',
+          'rgba(205, 0, 0, 1)',
+          'rgba(215, 0, 0, 1)',
+          'rgba(225, 0, 0, 1)',
+          'rgba(235, 0, 0, 1)',
+          'rgba(245, 0, 0, 1)',
+          'rgba(255, 0, 0, 1)',
+          'rgba(255, 0, 0, 1)'
+        ],
+          map: map
+            });
+          
+            var eventmapLocations=[//new heat(new google.maps.LatLng(37.782551, -122.445368),20),
+      new heat(new google.maps.LatLng(48.137154, 11.576124),10),
+      /*new heat(new google.maps.LatLng(48.78232, 9.17702),30),
+      new heat(new google.maps.LatLng(45.75372, 21.22571),30),
+      new heat(new google.maps.LatLng(50.87033, 20.62752),30),
+      new heat(new google.maps.LatLng(33.88894, 35.49442),30),
+      new heat(new google.maps.LatLng(55.78874, 49.12214),30),
+      new heat(new google.maps.LatLng(52.52437, 13.41053),10),
+      new heat(new google.maps.LatLng(50.77664, 6.08342),10),
+      new heat(new google.maps.LatLng(51.51494, 7.466),20),
+      */
+      new heat(new google.maps.LatLng(49.19522, 16.60796),1),
+      new heat(new google.maps.LatLng(45.46427, 9.18951),1),
+      new heat(new google.maps.LatLng(41.89193, 12.51133),1),
+      /*new heat(new google.maps.LatLng(41.11148, 16.8554),20),
+      new heat(new google.maps.LatLng(47.49801, 19.03991),10),
+      new heat(new google.maps.LatLng(50.66833, 25.64861),10),
+      new heat(new google.maps.LatLng(48.45, 29.98333),10),
+      new heat(new google.maps.LatLng(49.45466, 27.5238),20),
+      new heat(new google.maps.LatLng(43.23421,22.5234),10),
+      new heat(new google.maps.LatLng(45.66833, 15.64861),10),
+      new heat(new google.maps.LatLng(48.45, 34.98333),10),
+      new heat(new google.maps.LatLng(50.45466, 30.5238),20),
+      */new heat(new google.maps.LatLng(53.23421,32.5234),1),
+
+      new heat(new google.maps.LatLng(39.9075, 116.39723),3)
+      ]
+        //alert(heatmapLocations.length);
+        for(var k=0;k < eventmapLocations.length;k++){
+          for(var j=0;j < eventmapLocations[k].pulse;j++){
+            eventmapData.push(eventmapLocations[k].location);
+          }
+        }
+
+          eventmap = new google.maps.visualization.HeatmapLayer({
+          data: eventmapData,
+          dissipating: false,
+          radius:1,
+          gradient:[
+          'rgba(255, 0, 0, 0)',
+          'rgba(255, 255, 255, 1)',
+          'rgba(255, 255, 255, 1)',
+          'rgba(255, 255, 255, 1)'     
+        ],
+          map: map
+            });
+            eventmap.set('data',null);
+          
+
+        
+        for(var i=0;i < results.features.length;i++){
+          var city = results.features[i].city;
+          var imgURL=results.features[i].selfie_preview;
+          var location=null;
+          var name=results.features[i].first_name;
+          userData.push(new user(city,imgURL,location,name));
+          
+          /*
+          var geocoder = new google.maps.Geocoder();
+          
+          geocoder.geocode({
+          'address': city
+          }, function(results, status) {
+              if (status == google.maps.GeocoderStatus.OK) {
+                var Lat = results[0].geometry.location.lat();
+                var Lng = results[0].geometry.location.lng();
+               
+          //var coords = results.features[i].geometry.coordinates;
+          //var latLng = new google.maps.LatLng(coords[1], coords[0]);
+          var latLng = new google.maps.LatLng(Lat, Lng);
+          heatmapData.push(latLng);
+          heatmap.set('data',heatmap.get('data') ? null : heatmapData);
+          //alert(heatmapData);
+          }
+          else{
+            alert('Geocode was not successful for the following reason'+status);
+          }
+
+        });*/
+
+          //alert(i+'/'+results.features.length);
+          
+      }
+        
+      }
+      function pop() {
+        var popup = document.getElementById("myPopup");
+        popup.style.visibility = 'visible';
+      }
+      function unpop()
+      {
+        var popup = document.getElementById("myPopup");
+        popup.style.visibility = 'hidden';
+      }
+
+      function AddEvent() {
+       event(selectedmap);
+      }
+
+      function toggleFanMap(){
+        if(selectedmap==0)
+        {
+          markerCluster0= new MarkerClusterer(map, fanMarkers,
+            {zoomOnClick:true, imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
+        //markerCluster2 = new MarkerClusterer(map, prizeMarkers,
+          //  {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
+          
+        }
+        selectedmap=0;
+        eventmap.set('data',null);
+        myLayers.set('prizes',null);
+        myLayers.set('fans',map);
+      }
+      function toggleEventMap(){
+        selectedmap=1;
+        myLayers.set('fans',null);
+        myLayers.set('prizes',null);
+        eventmap.set('data',eventmapData);
+      }
+      function togglePrizeMap(){
+        selectedmap=2;
+        eventmap.set('data',null);
+        myLayers.set('fans',null);
+        myLayers.set('prizes',map);
+        //markerCluster0.hideCluster();
+      }
+
+      var userIndex=0;
+      var fanMarkers = [];
+      var prizeMarkers = [];
+      var GP=0;
+      var gpulseValue;
+
+      function event(type){
+        
+        if(userIndex<userData.length){
+        var geocoder = new google.maps.Geocoder();
+        var fan=document.getElementById('fan');
+        fan.textContent=userData[userIndex].name+', '+userData[userIndex].city;
+          
+          geocoder.geocode({
+          'address': userData[userIndex].city
+          }, function(results, status) {
+              if (status == google.maps.GeocoderStatus.OK) {
+                var Lat = results[0].geometry.location.lat();
+                var Lng = results[0].geometry.location.lng();
+               
+          //var coords = results.features[i].geometry.coordinates;
+          //var latLng = new google.maps.LatLng(coords[1], coords[0]);
+          var latLng = new google.maps.LatLng(Lat, Lng);
+          for(var i=0;i<40;i++){
+            heatmapData.push(latLng);
+            GP++;
+            gpulseValue.textContent=(10+GP/200.0)+'%';
+          }
+
+          switch(type){
+            case 0:{
+            userData[userIndex].location=latLng;
+            var marker = new google.maps.Marker({
+            position: latLng,
+            });
+
+            var icon={ url:userData[userIndex].imgURL, scaledSize: new google.maps.Size(70,70) }
+            marker.setIcon(icon);
+            marker.bindTo('map',myLayers,'fans');
+            fanMarkers.push(marker);
+            break;
+          }
+            case 1:{
+            userData[userIndex].location=latLng;
+            eventmapData.push(latLng);
+
+            break;
+          }
+            case 2:{
+            userData[userIndex].location=latLng;
+            var marker = new google.maps.Marker({
+            position: latLng,
+            });
+
+            var imgUrl;
+            switch (Math.floor(Math.random() * 5)){
+              case 0:imgUrl='../p0.jpg';break;
+              case 1:imgUrl='../p1.jpg';break;
+              case 2:imgUrl='../p2.jpg';break;
+              case 3:imgUrl='../p3.jpg';break;
+              case 4:imgUrl='../p4.jpg';break;
+            }
+            var icon={ url:imgUrl, scaledSize: new google.maps.Size(70,70) }
+            marker.setIcon(icon);
+            marker.bindTo('map',myLayers,'prizes');
+            prizeMarkers.push(marker);
+            break;
+          }
+          }
+    
+          userIndex++;
+          heatmap.set('data', heatmapData);
+          //alert(heatmapData);
+          }
+          else{
+            alert('Geocode was not successful for the following reason'+status);
+          }
+
+        });
+        
+       // heatmap.set('data',heatmapData);
+      }
+      }
+
+    </script>
+    <script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js">
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcQ2twu1nY17wcIUEbxodi9OoxyklvNBI&libraries=visualization&callback=initMap"
+    async defer></script>
+  </body>
+</html>
